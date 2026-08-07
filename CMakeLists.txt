@@ -20,12 +20,18 @@ endif()
 
 include_directories(SYSTEM $ENV{VULKAN_SDK}/include)
 
-include_directories(external/tinyobj)
-add_subdirectory(external/glfw-3.4/)
-include_directories(external/glfw-3.4/include)
 find_package(Vulkan REQUIRED)
 
 find_library(Slang_LIBRARY NAMES slang slang-compiler HINTS "$ENV{VULKAN_SDK}/lib" REQUIRED)
+
+FetchContent_Declare(glfw
+    GIT_REPOSITORY https://github.com/glfw/glfw
+    )
+FetchContent_MakeAvailable(glfw)
+FetchContent_Declare(tinyobj
+    GIT_REPOSITORY https://github.com/tinyobjloader/tinyobjloader
+)
+
 if (NOT WIN32)
     FetchContent_Declare(GLM
         GIT_REPOSITORY https://github.com/g-truc/glm
@@ -47,7 +53,7 @@ if(MSVC)
 endif()
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin/")
 
-file(GLOB MY_SOURCES "assets/Shaders/*.slang")
+file(GLOB MY_SOURCES "assets/shaders/*.slang")
 add_executable(${NAME} main.cpp)
 
 cmake_minimum_required(VERSION 3.15)
@@ -96,6 +102,7 @@ set_target_properties(${NAME} PROPERTIES DEBUGGER_WORKING_DIRECTORY ${CMAKE_CURR
 target_compile_definitions(${NAME} PRIVATE SLANGSHADERPATHFROMCMAKE="${CMAKE_CURRENT_LIST_DIR}/shaders") 
 target_compile_definitions(${NAME} PRIVATE OBJPATHFROMCMAKE="${CMAKE_CURRENT_LIST_DIR}/assets/models") 
 target_compile_features(${NAME} PRIVATE cxx_std_20)
+target_link_libraries(${NAME} tinyobj)
 target_link_libraries(${NAME} glfw)
 target_link_libraries(${NAME} ${Slang_LIBRARY})
 

@@ -1,0 +1,7 @@
+benchy.obj : @Janovich_397859  https://www.printables.com/model/989013-clean-benchy-retopologized
+
+bunny.obj : Morgan McGuire, Computer Graphics Archive, July 2017 (https://casual-effects.com/data)
+dragon.obj : Morgan McGuire, Computer Graphics Archive, July 2017 (https://casual-effects.com/data)
+teapot.obj : Morgan McGuire, Computer Graphics Archive, July 2017 (https://casual-effects.com/data)
+
+suzanne.obj : @purvigoel https://github.com/alecjacobson/common-3d-test-models/
