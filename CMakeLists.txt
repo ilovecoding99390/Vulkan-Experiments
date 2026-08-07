@@ -1,5 +1,5 @@
-# Copyright (c) 2025-2026, Sascha Willems
-# SPDX-License-Identifier: MIT
+# Based on the cmakelist from How to Vulkan
+
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
