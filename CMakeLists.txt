@@ -85,6 +85,7 @@ function (add_slang_shader_target TARGET)
     add_custom_target (${TARGET} DEPENDS ${SHADERS_DIR}/slang.spv)
 endfunction()
 
+
 add_slang_shader_target( CompileSlang SOURCES ${MY_SOURCES})
 add_dependencies(${NAME} CompileSlang)
 
