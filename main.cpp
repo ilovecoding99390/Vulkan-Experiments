@@ -23,7 +23,7 @@
 #include <sstream>
 
 
-#define chk2(x) a=x; if (a != VK_SUCCESS && a!= VK_SUBOPTIMAL_KHR) {cerr << "A Call returned an error (" << a << ") Line:"<< __LINE__ <<" In:"<<__func__<< endl; exit(a);}
+#define vkchk(x) a=x; if (a != VK_SUCCESS && a!= VK_SUBOPTIMAL_KHR) {cerr << "A Call returned an error (" << a << ") Line:"<< __LINE__ <<" In:"<<__func__<< endl; exit(a);}
 int a;
 
 using namespace std;
@@ -130,24 +130,6 @@ struct extragpudata{
     vec4 scale;
 };
 
-static inline void chk(VkResult result) {
-	if (result != VK_SUCCESS) {
-		cerr << "Vulkan call returned an error (" << result << ")\n";
-        exit(result);
-	}
-}
-static inline void chk3(VkResult result) {
-	if (result != VK_SUCCESS) {
-		cerr << "Vulkan call returned an error (" << result << ")\n";
-        //exit(result);
-	}
-}
-static inline void chk(bool result) {
-	if (!result) {
-		cerr << "Call returned an error\n";
-		exit(result);
-	}
-}
 static inline void gchk(int r){
     if(r!=GLFW_TRUE){
         cerr << "Call returned an error\n";
@@ -242,7 +224,7 @@ static inline void addPresentationBarriercmd(VkCommandBuffer cmdbuff, Window &wi
 
 void SetupEngine(Engine &Engine){
     gchk(glfwInit());
-    chk2(volkInitialize());
+    vkchk(volkInitialize());
     
     VkApplicationInfo appInfo{
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -260,15 +242,15 @@ void SetupEngine(Engine &Engine){
         .enabledExtensionCount = glfwExtensionCount,
         .ppEnabledExtensionNames = glfwExtensions,
     };
-    chk2(vkCreateInstance(&instanceCI, nullptr, &Engine.Instance));
+    vkchk(vkCreateInstance(&instanceCI, nullptr, &Engine.Instance));
     volkLoadInstance(Engine.Instance);
 }
 
 VkPhysicalDevice GetDevice(Engine &Engine){
     uint32_t deviceCount{0};
-    chk2(vkEnumeratePhysicalDevices(Engine.Instance, &deviceCount, nullptr));
+    vkchk(vkEnumeratePhysicalDevices(Engine.Instance, &deviceCount, nullptr));
     vector<VkPhysicalDevice> Devices(deviceCount);
-    chk2(vkEnumeratePhysicalDevices(Engine.Instance, &deviceCount, Devices.data()));
+    vkchk(vkEnumeratePhysicalDevices(Engine.Instance, &deviceCount, Devices.data()));
     for(VkPhysicalDevice Device : Devices){
         VkPhysicalDeviceProperties prop;
         vkGetPhysicalDeviceProperties(Device, &prop);
@@ -348,7 +330,7 @@ VkShaderModule MakeShaderModule(Engine &engine, string filename){
     string str(SLANGSHADERPATHFROMCMAKE);
     vector<char> code=readFile(str+"/"+filename);
     VkShaderModuleCreateInfo createInfo{.codeSize = code.size() * sizeof(char), .pCode = reinterpret_cast<const uint32_t *>(code.data())};
-    chk2(vkCreateShaderModule(engine.Device, &createInfo, nullptr, &shaderModule));
+    vkchk(vkCreateShaderModule(engine.Device, &createInfo, nullptr, &shaderModule));
     return shaderModule;
 }
 
@@ -369,7 +351,7 @@ void setupslang(Engine &Engine){
 
     VkPushConstantRange pushConstantRange{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT, .size = sizeof(extragpudata)};
     VkPipelineLayoutCreateInfo pipelinecreateinfo{.sType=VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, .pushConstantRangeCount = 1, .pPushConstantRanges = &pushConstantRange};
-    chk2(vkCreatePipelineLayout(Engine.Device, &pipelinecreateinfo, nullptr, &shader.PipelineLayout));
+    vkchk(vkCreatePipelineLayout(Engine.Device, &pipelinecreateinfo, nullptr, &shader.PipelineLayout));
     
     VkPipelineRenderingCreateInfo renderingCI{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
@@ -420,7 +402,7 @@ void setupslang(Engine &Engine){
     .pDynamicState = &dynamicState,
     .layout = shader.PipelineLayout
     };
-    chk2(vkCreateGraphicsPipelines(Engine.Device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &shader.Pipeline));
+    vkchk(vkCreateGraphicsPipelines(Engine.Device, VK_NULL_HANDLE, 1, &pipelineCI, nullptr, &shader.Pipeline));
 
     Engine.Shader=shader;
 }
@@ -434,14 +416,14 @@ Engine init(){
     setupslang(Engine);
 
     VkCommandPoolCreateInfo commandPoolCI{ .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, .queueFamilyIndex = Engine.QueueFamily};
-    chk2(vkCreateCommandPool(Engine.Device, &commandPoolCI, nullptr, &Engine.CmdPool));
+    vkchk(vkCreateCommandPool(Engine.Device, &commandPoolCI, nullptr, &Engine.CmdPool));
     VmaVulkanFunctions vkFunctions{ 
         .vkGetInstanceProcAddr = vkGetInstanceProcAddr, 
         .vkGetDeviceProcAddr = vkGetDeviceProcAddr, 
         .vkCreateImage = vkCreateImage
     };
     VmaAllocatorCreateInfo allocatorCI{.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT, .physicalDevice = Engine.PhysicalDevice, .device = Engine.Device, .pVulkanFunctions = &vkFunctions, .instance = Engine.Instance};
-    chk2(vmaCreateAllocator(&allocatorCI, &Engine.Allocator));
+    vkchk(vmaCreateAllocator(&allocatorCI, &Engine.Allocator));
     
     GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
@@ -470,7 +452,7 @@ void makedepthimage(Engine &engine, Window &window, int w, int h){
     };
     vmaCreateImage(engine.Allocator, &depthimageinfo, &allocinfo, &window.DepthImage, &window.DepthAlloc, nullptr);
     VkImageViewCreateInfo imageviewinfo{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .pNext =nullptr, .image=window.DepthImage, .viewType = VK_IMAGE_VIEW_TYPE_2D, .format=engine.Depthformat, .subresourceRange{VK_IMAGE_ASPECT_DEPTH_BIT,0,1,0,1}};
-    chk2(vkCreateImageView(engine.Device, &imageviewinfo, nullptr, &window.DepthImageView));
+    vkchk(vkCreateImageView(engine.Device, &imageviewinfo, nullptr, &window.DepthImageView));
 }
 
 VkSwapchainKHR MakeSwapchain(Engine &Engine, int w, int h, VkSurfaceCapabilitiesKHR surfaceCaps, VkSurfaceKHR surface){
@@ -493,13 +475,13 @@ VkSwapchainKHR MakeSwapchain(Engine &Engine, int w, int h, VkSurfaceCapabilities
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .presentMode = VK_PRESENT_MODE_FIFO_KHR
     };
-    chk2(vkCreateSwapchainKHR(Engine.Device, &swapchainCI, nullptr, &swapchain));
+    vkchk(vkCreateSwapchainKHR(Engine.Device, &swapchainCI, nullptr, &swapchain));
     return swapchain;
 }
 
 void RecreateSwapchain(Window &window, int width, int height){
     Engine &engine = *window.engine;
-    chk2(vkDeviceWaitIdle(engine.Device));
+    vkchk(vkDeviceWaitIdle(engine.Device));
 
     for (VkImageView view : window.imageviews) {
         vkDestroyImageView(engine.Device, view, nullptr);
@@ -536,15 +518,15 @@ void RecreateSwapchain(Window &window, int width, int height){
         .oldSwapchain = oldSwapchain
     };
 
-    chk2(vkCreateSwapchainKHR(engine.Device, &swapchainCI, nullptr, &window.Swapchain));
+    vkchk(vkCreateSwapchainKHR(engine.Device, &swapchainCI, nullptr, &window.Swapchain));
     if (oldSwapchain != VK_NULL_HANDLE) {
         vkDestroySwapchainKHR(engine.Device, oldSwapchain, nullptr);
     }
 
     uint32_t imageCount = 0;
-    chk2(vkGetSwapchainImagesKHR(engine.Device, window.Swapchain, &imageCount, nullptr));
+    vkchk(vkGetSwapchainImagesKHR(engine.Device, window.Swapchain, &imageCount, nullptr));
     window.images.resize(imageCount);
-    chk2(vkGetSwapchainImagesKHR(engine.Device, window.Swapchain, &imageCount, window.images.data()));
+    vkchk(vkGetSwapchainImagesKHR(engine.Device, window.Swapchain, &imageCount, window.images.data()));
     window.imageviews.resize(imageCount);
     for (uint32_t i = 0; i < imageCount; i++) {
         VkImageViewCreateInfo viewCI{
@@ -554,7 +536,7 @@ void RecreateSwapchain(Window &window, int width, int height){
             .format = engine.ImageFormat,
             .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
         };
-        chk2(vkCreateImageView(engine.Device, &viewCI, nullptr, &window.imageviews[i]));
+        vkchk(vkCreateImageView(engine.Device, &viewCI, nullptr, &window.imageviews[i]));
     }
 
     for (VkSemaphore semaphore : window.PresentationReadySemaphore) {
@@ -564,7 +546,7 @@ void RecreateSwapchain(Window &window, int width, int height){
     window.PresentationReadySemaphore.resize(imageCount);
     VkSemaphoreCreateInfo semaphoreCI{ .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
     for (auto &semaphore : window.PresentationReadySemaphore) {
-        chk2(vkCreateSemaphore(engine.Device, &semaphoreCI, nullptr, &semaphore));
+        vkchk(vkCreateSemaphore(engine.Device, &semaphoreCI, nullptr, &semaphore));
     }
     makedepthimage(engine, window, width, height);
     window.width = width;
@@ -592,7 +574,7 @@ void addsemaphores(Engine &engine, Window &window){
     }
     window.PresentationReadySemaphore.resize(window.images.size());
 	for (auto& semaphore : window.PresentationReadySemaphore) {
-	chk2(vkCreateSemaphore(engine.Device, &semaphoreCI, nullptr, &semaphore));
+	vkchk(vkCreateSemaphore(engine.Device, &semaphoreCI, nullptr, &semaphore));
 	}
 }
 
@@ -602,8 +584,8 @@ void MakeWindow(int w, int h, string name, Engine &Engine){
     window.GlfwWindow = glfwCreateWindow(w, h, name.c_str(), nullptr, nullptr);    
     
     //surface
-    chk2(glfwCreateWindowSurface(Engine.Instance, window.GlfwWindow, nullptr, &window.Surface));
-    chk2(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Engine.PhysicalDevice, window.Surface, &window.SurfaceCapabilities));
+    vkchk(glfwCreateWindowSurface(Engine.Instance, window.GlfwWindow, nullptr, &window.Surface));
+    vkchk(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(Engine.PhysicalDevice, window.Surface, &window.SurfaceCapabilities));
     
     //swapchain
     window.Swapchain = MakeSwapchain(Engine, w, h, window.SurfaceCapabilities, window.Surface);
@@ -619,13 +601,13 @@ void MakeWindow(int w, int h, string name, Engine &Engine){
     //imageview
     uint32_t imageCount{ 0 };
 
-    chk2(vkGetSwapchainImagesKHR(Engine.Device, window.Swapchain, &imageCount, nullptr));
+    vkchk(vkGetSwapchainImagesKHR(Engine.Device, window.Swapchain, &imageCount, nullptr));
     window.images.resize(imageCount);
-    chk2(vkGetSwapchainImagesKHR(Engine.Device, window.Swapchain, &imageCount, window.images.data()));
+    vkchk(vkGetSwapchainImagesKHR(Engine.Device, window.Swapchain, &imageCount, window.images.data()));
 	window.imageviews.resize(imageCount);
 	for (auto i = 0; i < imageCount; i++) {
 		VkImageViewCreateInfo viewCI{ .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO, .image = window.images[i], .viewType = VK_IMAGE_VIEW_TYPE_2D, .format = Engine.ImageFormat, .subresourceRange{.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 } };
-	chk2(vkCreateImageView(Engine.Device, &viewCI, nullptr, &window.imageviews[i]));
+	vkchk(vkCreateImageView(Engine.Device, &viewCI, nullptr, &window.imageviews[i]));
 	}   
 
     window.engine = &Engine;
@@ -651,10 +633,10 @@ GpuBuffer MakeGPUBuffer(Engine &engine,VkBufferUsageFlags usageflags, const void
         .usage=VMA_MEMORY_USAGE_AUTO
     };
     GpuBuffer buffer{.size=size};
-    chk2(vmaCreateBuffer(engine.Allocator, &bufinfo, &alloccreateinfo, &buffer.vkbuffer, &buffer.alloc, &buffer.allocinfo));
+    vkchk(vmaCreateBuffer(engine.Allocator, &bufinfo, &alloccreateinfo, &buffer.vkbuffer, &buffer.alloc, &buffer.allocinfo));
 
     memcpy(buffer.allocinfo.pMappedData, data, size);
-    chk2(vmaFlushAllocation(engine.Allocator, buffer.alloc, 0, size));
+    vkchk(vmaFlushAllocation(engine.Allocator, buffer.alloc, 0, size));
     
     return buffer;
 }
@@ -693,12 +675,12 @@ void StartFrame(Engine &Engine, Window &window){
     glfwGetWindowSize(window.GlfwWindow, &window.width, &window.height);
 
     VkFence *currentframefence = &window.FrameFence[window.FrameInFlight];
-    chk2(vkWaitForFences(Engine.Device, 1, currentframefence, true, 15000000000));
-    chk2(vkResetFences(Engine.Device, 1, currentframefence));
+    vkchk(vkWaitForFences(Engine.Device, 1, currentframefence, true, 15000000000));
+    vkchk(vkResetFences(Engine.Device, 1, currentframefence));
 
     VkSemaphore AquiredFlag = window.ImageAquiredSemaphore[window.FrameInFlight];
     
-    chk2(vkAcquireNextImageKHR(Engine.Device, window.Swapchain, 15000000000, AquiredFlag, nullptr, &window.ActiveImage));
+    vkchk(vkAcquireNextImageKHR(Engine.Device, window.Swapchain, 15000000000, AquiredFlag, nullptr, &window.ActiveImage));
    
     VkCommandBufferBeginInfo cmdbuffbeginfo{
         .sType=VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -706,8 +688,8 @@ void StartFrame(Engine &Engine, Window &window){
     };
 
 
-    chk2(vkResetCommandBuffer(window.CmdBuffers[window.FrameInFlight], 0));
-    chk2(vkBeginCommandBuffer(window.CmdBuffers[window.FrameInFlight], &cmdbuffbeginfo));
+    vkchk(vkResetCommandBuffer(window.CmdBuffers[window.FrameInFlight], 0));
+    vkchk(vkBeginCommandBuffer(window.CmdBuffers[window.FrameInFlight], &cmdbuffbeginfo));
 }
 
 void BeginRender(Engine &Engine, Window &window){
@@ -761,14 +743,14 @@ void submitCommands(VkQueue &queue, VkCommandBuffer &cmdbuff, Window &window){
         .pSignalSemaphores=&window.PresentationReadySemaphore[window.ActiveImage]
     };
 
-    chk2(vkQueueSubmit(queue, 1, &submitinfo, window.FrameFence[window.FrameInFlight]));
+    vkchk(vkQueueSubmit(queue, 1, &submitinfo, window.FrameFence[window.FrameInFlight]));
 }
 
 void EndFrame(Engine &engine, Window &window){
     VkCommandBuffer cmdbuff=window.CmdBuffers[window.FrameInFlight];
     vkCmdEndRendering(cmdbuff);
     addPresentationBarriercmd(cmdbuff, window);
-    chk2(vkEndCommandBuffer(cmdbuff));
+    vkchk(vkEndCommandBuffer(cmdbuff));
     submitCommands(engine.Queue, cmdbuff, window);
     
     VkPresentInfoKHR presentinfo{
@@ -779,14 +761,14 @@ void EndFrame(Engine &engine, Window &window){
 		.pSwapchains = &window.Swapchain,
 		.pImageIndices = &window.ActiveImage
     };
-    chk2(vkQueuePresentKHR(engine.Queue, &presentinfo));
+    vkchk(vkQueuePresentKHR(engine.Queue, &presentinfo));
 
     window.FrameInFlight=(window.FrameInFlight+1)%maxframesinflight;
 }
 
 
 void Clean(Engine &Engine){
-    chk2(vkDeviceWaitIdle(Engine.Device));
+    vkchk(vkDeviceWaitIdle(Engine.Device));
     for(Window &window : Engine.Windows){
         for (VkImageView imageView : window.imageviews) {
             vkDestroyImageView(Engine.Device, imageView, nullptr);
